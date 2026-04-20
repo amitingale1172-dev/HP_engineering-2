@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HP ENGINEERING — VMC & CNC Manufacturing</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Outfit:wght@300;400;500&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+:root{--bg:#080808;--fg:#E8E8E2;--dim:#3A3A38;--dimmer:#0E0E0D;--border:rgba(255,255,255,0.07);--acc:#DCFF00;}
+html{scroll-behavior:smooth;}
+body{background:var(--bg);color:var(--fg);font-family:'Outfit',sans-serif;overflow-x:hidden;cursor:none;}
+::-webkit-scrollbar{width:2px;}::-webkit-scrollbar-thumb{background:#222;}
+
+/* ── CURSOR ── */
+#cur{position:fixed;top:0;left:0;z-index:9999;pointer-events:none;will-change:transform;}
+#cur-ring{width:34px;height:34px;border:1px solid rgba(255,255,255,0.25);border-radius:50%;display:flex;align-items:center;justify-content:center;transition:transform 0.15s,border-color 0.2s;}
+#cur-dot{width:5px;height:5px;background:var(--acc);border-radius:50%;}
+body:has(a:hover) #cur-ring,body:has(button:hover) #cur-ring{transform:scale(1.7);border-color:var(--acc);}
+#coords{position:fixed;bottom:22px;right:28px;font-family:'Share Tech Mono',monospace;font-size:9px;color:#2a2a28;letter-spacing:1.5px;pointer-events:none;z-index:9999;transition:color 0.5s;}
+#coords.active{color:#404038;}
+
+/* ── PROGRESS BAR ── */
+#prog{position:fixed;top:0;left:0;height:1px;background:var(--acc);z-index:9998;width:0%;transition:width 0.05s;}
+
+/* ── NAV ── */
+nav{position:fixed;top:0;width:100%;z-index:200;padding:24px 64px;display:flex;align-items:center;justify-content:space-between;transition:background 0.4s;}
+.n-logo{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:5px;color:var(--fg);text-decoration:none;}
+.n-logo b{color:var(--acc);font-weight:400;}
+.n-links{display:flex;gap:40px;list-style:none;}
+.n-links a{font-family:'Share Tech Mono',monospace;font-size:10px;letter-spacing:2.5px;text-transform:uppercase;color:var(--dim);text-decoration:none;transition:color 0.2s;}
+.n-links a:hover{color:var(--fg);}
+.n-btn{font-family:'Share Tech Mono',monospace;font-size:10px;letter-spacing:2px;color:var(--acc);border:1px solid rgba(220,255,0,0.4);padding:8px 22px;text-decoration:none;transition:all 0.25s;}
+.n-btn:hover{background:var(--acc);color:var(--bg);border-color:var(--acc);}
+
+/* ── HERO ── */
+#hero{position:relative;height:100vh;overflow:hidden;display:flex;align-items:flex-end;}
+#cvs{position:absolute;inset:0;width:100%;height:100%;}
+.h-wrap{position:relative;z-index:10;padding:0 64px 80px;max-width:620px;}
+.h-eye{font-family:'Share Tech Mono',monospace;font-size:9px;letter-spacing:4px;color:var(--dim);margin-bottom:18px;overflow:hidden;}
+.h-eye span{display:block;transform:translateY(100%);animation:up 0.5s 0.3s cubic-bezier(0.16,1,0.3,1) forwards;}
+.h-title{font-family:'Bebas Neue',sans-serif;line-height:0.88;letter-spacing:1px;overflow:hidden;}
+.h-title .ln{display:block;font-size:clamp(80px,12vw,168px);transform:translateY(110%);animation:up 1s cubic-bezier(0.16,1,0.3,1) forwards;}
+.h-title .ln1{animation-delay:0.15s;}
+.h-title .ln2{animation-delay:0.28s;color:var(--acc);}
+.h-sub{font-size:14px;font-weight:300;color:var(--dim);line-height:1.8;margin-top:28px;overflow:hidden;}
+.h-sub span{display:block;transform:translateY(20px);opacity:0;animation:fadeUp 0.6s 0.9s forwards;}
+.h-acts{display:flex;gap:20px;align-items:center;margin-top:36px;overflow:hidden;}
+.h-acts>*{transform:translateY(16px);opacity:0;animation:fadeUp 0.5s 1.2s forwards;}
+@keyframes up{to{transform:translateY(0);}}
+@keyframes fadeUp{to{transform:translateY(0);opacity:1;}}
+
+/* scroll line */
+.scr{position:absolute;right:64px;bottom:48px;z-index:10;display:flex;flex-direction:column;align-items:center;gap:10px;}
+.scr-lbl{font-family:'Share Tech Mono',monospace;font-size:8px;letter-spacing:2px;color:var(--dim);writing-mode:vertical-rl;}
+.scr-track{width:1px;height:48px;background:rgba(255,255,255,0.08);overflow:hidden;position:relative;}
+.scr-track::after{content:'';position:absolute;top:-100%;width:1px;height:100%;background:var(--fg);animation:scanLine 2s ease-in-out infinite;}
+@keyframes scanLine{0%{top:-100%;}100%{top:200%;}}
+
+/* ── STATS ── */
+#stats{position:relative;z-index:10;display:grid;grid-template-columns:repeat(4,1fr);border-top:1px solid var(--border);border-bottom:1px solid var(--border);}
+.st{padding:52px 40px;border-right:1px solid var(--border);position:relative;overflow:hidden;}
+.st:last-child{border-right:none;}
+.st::after{content:'';position:absolute;bottom:0;left:0;height:1px;width:0;background:var(--acc);transition:width 1s cubic-bezier(0.16,1,0.3,1);}
+.st.vis::after{width:100%;}
+.st-v{font-family:'Bebas Neue',sans-serif;font-size:clamp(48px,5.5vw,80px);letter-spacing:1px;line-height:1;}
+.st-u{font-family:'Share Tech Mono',monospace;font-size:13px;color:var(--acc);}
+.st-l{font-family:'Share Tech Mono',monospace;font-size:9px;letter-spacing:2px;color:var(--dim);text-transform:uppercase;margin-top:10px;}
+
+/* ── CAPABILITIES ── */
+#cap{padding:120px 64px;position:relative;z-index:10;}
+.sh{margin-bottom:72px;}
+.sh-tag{font-family:'Share Tech Mono',monospace;font-size:9px;letter-spacing:4px;color:var(--dim);text-transform:uppercase;display:flex;align-items:center;gap:14px;margin-bottom:14px;}
+.sh-tag::before{content:'';width:24px;height:1px;background:var(--dim);}
+.sh-ttl{font-family:'Bebas Neue',sans-serif;font-size:clamp(42px,5vw,72px);letter-spacing:1px;line-height:1.05;}
+.sh-ttl i{font-style:normal;color:var(--acc);}
+.cg{display:grid;grid-template-columns:repeat(3,1fr);border:1px solid var(--border);}
+.ci{padding:44px 34px;border-right:1px solid var(--border);border-bottom:1px solid var(--border);position:relative;overflow:hidden;transition:background 0.5s;}
+.ci:nth-child(3n){border-right:none;}
+.ci:nth-child(n+4){border-bottom:none;}
+.ci:hover{background:rgba(220,255,0,0.02);}
+.ci-bar{width:0;height:1px;background:var(--acc);margin-bottom:22px;transition:width 0.7s 0.15s cubic-bezier(0.16,1,0.3,1);}
+.ci.vis .ci-bar{width:36px;}
+.ci-n{font-family:'Share Tech Mono',monospace;font-size:9px;letter-spacing:2px;color:var(--dim);margin-bottom:24px;}
+.ci-name{font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:1px;color:var(--fg);margin-bottom:14px;}
+.ci-desc{font-size:13px;font-weight:300;color:#484844;line-height:1.75;margin-bottom:20px;}
+.ci-specs{list-style:none;display:flex;flex-direction:column;gap:5px;}
+.ci-specs li{font-family:'Share Tech Mono',monospace;font-size:9px;color:#2e2e2c;display:flex;align-items:center;gap:8px;transition:color 0.3s;}
+.ci:hover .ci-specs li{color:#484840;}
+.ci-specs li::before{content:'';width:3px;height:3px;background:var(--acc);flex-shrink:0;}
+.ci-bg{position:absolute;bottom:10px;right:16px;font-family:'Bebas Neue',sans-serif;font-size:90px;color:rgba(255,255,255,0.018);line-height:1;pointer-events:none;}
+
+/* ── PROCESS ── */
+#proc{padding:120px 64px;background:var(--dimmer);position:relative;z-index:10;}
+.proc-row{display:grid;grid-template-columns:repeat(5,1fr);margin-top:72px;position:relative;}
+.proc-row::before{content:'';position:absolute;top:5px;left:5%;width:90%;height:1px;background:var(--border);}
+.proc-anim-line{position:absolute;top:5px;left:5%;height:1px;background:var(--acc);width:0;transition:width 1.4s cubic-bezier(0.16,1,0.3,1);box-shadow:0 0 6px rgba(220,255,0,0.4);}
+.proc-anim-line.vis{width:90%;}
+.ps{padding:0 16px;}
+.ps-dot{width:10px;height:10px;border:1px solid #222;border-radius:50%;margin-bottom:30px;transition:border-color 0.4s,background 0.4s,box-shadow 0.4s;}
+.ps.vis .ps-dot{border-color:var(--acc);background:var(--acc);box-shadow:0 0 10px rgba(220,255,0,0.5);}
+.ps-i{font-family:'Share Tech Mono',monospace;font-size:8px;letter-spacing:2px;color:var(--dim);margin-bottom:10px;}
+.ps-n{font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:1px;color:var(--fg);margin-bottom:8px;}
+.ps-d{font-size:12px;font-weight:300;color:#353533;line-height:1.7;}
+
+/* ── MARQUEE ── */
+#mat{padding:100px 0;position:relative;z-index:10;overflow:hidden;}
+.mat-head{padding:0 64px;margin-bottom:52px;}
+.mq{overflow:hidden;position:relative;}
+.mq::before,.mq::after{content:'';position:absolute;top:0;width:100px;height:100%;z-index:2;}
+.mq::before{left:0;background:linear-gradient(90deg,var(--bg),transparent);}
+.mq::after{right:0;background:linear-gradient(-90deg,var(--bg),transparent);}
+.mq-inner{display:flex;width:max-content;animation:mq 24s linear infinite;}
+.mq-inner.rev{animation-direction:reverse;animation-duration:30s;}
+.mq-item{padding:20px 56px;border-right:1px solid var(--border);white-space:nowrap;font-family:'Bebas Neue',sans-serif;font-size:30px;letter-spacing:3px;color:#242422;transition:color 0.3s;}
+.mq-item:hover{color:var(--dim);}
+.mq2 .mq-item{font-size:11px;font-family:'Share Tech Mono',monospace;letter-spacing:3px;padding:16px 48px;}
+@keyframes mq{from{transform:translateX(0);}to{transform:translateX(-50%);}}
+
+/* ── CONTACT ── */
+#contact{padding:120px 64px;border-top:1px solid var(--border);position:relative;z-index:10;}
+.cl{display:grid;grid-template-columns:1fr 1fr;gap:96px;margin-top:72px;align-items:start;}
+.c-tagline{font-family:'Bebas Neue',sans-serif;font-size:clamp(36px,4.5vw,60px);letter-spacing:1px;line-height:1.1;margin-bottom:44px;}
+.c-tagline i{font-style:normal;color:var(--acc);}
+.cd{display:flex;gap:20px;padding:16px 0;border-bottom:1px solid var(--border);}
+.cd:last-of-type{border:none;}
+.ck{font-family:'Share Tech Mono',monospace;font-size:9px;letter-spacing:2px;color:var(--dim);min-width:76px;padding-top:2px;}
+.cv{font-size:13px;color:var(--fg);line-height:1.7;}
+.cf{display:flex;flex-direction:column;gap:0;}
+.fg{border-bottom:1px solid var(--border);transition:border-color 0.3s;}
+.fg:focus-within{border-color:rgba(220,255,0,0.4);}
+.fg input,.fg textarea,.fg select{width:100%;padding:16px 0;background:transparent;border:none;color:var(--fg);font-family:'Outfit',sans-serif;font-size:14px;outline:none;}
+.fg input::placeholder,.fg textarea::placeholder{color:#282826;font-size:13px;}
+.fg textarea{resize:none;height:90px;}
+.fg select{appearance:none;cursor:none;color:#282826;}
+.fg select option{background:#0e0e0d;color:var(--fg);}
+.fr{display:grid;grid-template-columns:1fr 1fr;gap:20px;}
+.f-sub{margin-top:40px;background:transparent;border:none;border-bottom:2px solid var(--acc);color:var(--acc);font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:5px;cursor:none;text-align:left;width:100%;padding:14px 0;transition:letter-spacing 0.4s;}
+.f-sub:hover{letter-spacing:10px;}
+
+/* ── FOOTER ── */
+footer{padding:28px 64px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;position:relative;z-index:10;}
+.f-logo{font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:5px;}
+.f-logo b{color:var(--acc);font-weight:400;}
+.f-mono{font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--dim);letter-spacing:1px;}
+
+/* ── REVEAL ── */
+.rv{opacity:0;transform:translateY(28px);transition:opacity 0.8s cubic-bezier(0.16,1,0.3,1),transform 0.8s cubic-bezier(0.16,1,0.3,1);}
+.rv.vis{opacity:1;transform:none;}
+
+/* ── HAMBURGER (hidden on desktop) ── */
+.n-ham{display:none;flex-direction:column;gap:5px;cursor:pointer;padding:6px;background:none;border:none;z-index:300;}
+.n-ham span{display:block;width:22px;height:1px;background:var(--fg);transition:transform 0.3s,opacity 0.3s;}
+.n-ham.open span:nth-child(1){transform:translateY(6px) rotate(45deg);}
+.n-ham.open span:nth-child(2){opacity:0;}
+.n-ham.open span:nth-child(3){transform:translateY(-6px) rotate(-45deg);}
+.n-mob{display:none;position:fixed;top:0;left:0;width:100%;height:100vh;background:rgba(8,8,8,0.98);z-index:150;flex-direction:column;align-items:center;justify-content:center;gap:36px;}
+.n-mob.open{display:flex;}
+.n-mob a{font-family:'Bebas Neue',sans-serif;font-size:36px;letter-spacing:4px;color:var(--dim);text-decoration:none;transition:color 0.2s;}
+.n-mob a:hover{color:var(--fg);}
+.n-mob .n-btn{font-size:14px;padding:12px 32px;}
+
+/* ── TABLET ≤1024px ── */
+@media(max-width:1024px){
+  nav{padding:20px 36px;}
+  .n-links{gap:22px;}
+  .n-links a{font-size:9px;}
+  .h-wrap{padding:0 36px 72px;max-width:540px;}
+  #cap,#proc,#contact{padding-left:36px;padding-right:36px;}
+  #mat .mat-head{padding:0 36px;}
+  footer{padding:24px 36px;}
+  .cg{grid-template-columns:repeat(2,1fr);}
+  .ci:nth-child(3n){border-right:1px solid var(--border);}
+  .ci:nth-child(2n){border-right:none;}
+  .ci:nth-child(n+4){border-bottom:1px solid var(--border);}
+  .ci:nth-child(n+5){border-bottom:none;}
+  .cl{gap:48px;}
+  #stats{grid-template-columns:repeat(2,1fr);}
+  .st{border-bottom:1px solid var(--border);}
+  .st:nth-child(2n){border-right:none;}
+  .st:nth-child(3),.st:nth-child(4){border-bottom:none;}
+  .proc-row{grid-template-columns:repeat(3,1fr);gap:0;}
+  .proc-row::before{top:5px;left:3%;width:94%;}
+  .proc-anim-line{left:3%;}
+  .proc-anim-line.vis{width:94%;}
+  .ps:nth-child(n+5){display:none;}
+}
+
+/* ── MOBILE ≤768px ── */
+@media(max-width:768px){
+  body{cursor:auto;}
+  #cur,#coords{display:none!important;}
+
+  /* Nav */
+  nav{padding:18px 24px;}
+  .n-logo{font-size:18px;letter-spacing:3px;}
+  .n-links,.n-btn{display:none;}
+  .n-ham{display:flex;}
+
+  /* Hero */
+  #cvs{display:none;}
+  #hero{background:linear-gradient(160deg,#0d0d0b 0%,#080808 60%);min-height:100svh;}
+  .h-wrap{padding:100px 24px 72px;max-width:100%;}
+  .scr{display:none;}
+
+  /* Kill all entry animations */
+  .h-eye span,.h-title .ln,.h-sub span,.h-acts>*{
+    transform:none!important;opacity:1!important;animation:none!important;
+  }
+  .rv,.ci,.ps,.st{opacity:1!important;transform:none!important;transition:none!important;}
+  .ci-bar{width:36px!important;transition:none!important;}
+  .st::after{display:none;}
+  .proc-anim-line{display:none;}
+  .ps-dot{border-color:var(--acc)!important;background:var(--acc)!important;box-shadow:none!important;}
+
+  /* Stats: 2×2 */
+  #stats{grid-template-columns:1fr 1fr;}
+  .st{padding:32px 20px;border-right:1px solid var(--border)!important;border-bottom:1px solid var(--border)!important;}
+  .st:nth-child(2n){border-right:none!important;}
+  .st:nth-child(3),.st:nth-child(4){border-bottom:none!important;}
+
+  /* Capabilities: single col */
+  #cap{padding:64px 24px;}
+  .cg{grid-template-columns:1fr;}
+  .ci{border-right:none!important;border-bottom:1px solid var(--border)!important;padding:28px 20px;}
+  .ci:last-child{border-bottom:none!important;}
+  .ci:hover{background:transparent;transform:none!important;}
+
+  /* Process: vertical list */
+  #proc{padding:64px 24px;}
+  .proc-row{grid-template-columns:1fr;gap:0;}
+  .proc-row::before,.proc-anim-line{display:none;}
+  .ps{padding:24px 0;border-bottom:1px solid var(--border);}
+  .ps:nth-child(n+5){display:block;}
+  .ps:last-child{border-bottom:none;}
+  .ps-dot{margin-bottom:14px;width:8px;height:8px;}
+
+  /* Materials */
+  #mat{padding:64px 0;}
+  .mat-head{padding:0 24px!important;}
+  .mq-item{font-size:22px;padding:14px 32px;}
+  .mq2 .mq-item{font-size:10px;padding:12px 24px;}
+
+  /* Contact */
+  #contact{padding:64px 24px;}
+  .cl{grid-template-columns:1fr;gap:44px;}
+  .fr{grid-template-columns:1fr;gap:0;}
+  .c-tagline{font-size:clamp(28px,8vw,44px);}
+
+  /* Footer */
+  footer{padding:24px;flex-direction:column;text-align:center;gap:10px;}
+  .f-mono:last-child{display:none;}
+
+  /* Headings */
+  .sh{margin-bottom:40px;}
+  .sh-ttl{font-size:clamp(36px,8vw,52px);}
+  .f-sub{cursor:auto;letter-spacing:4px;}
+  .f-sub:hover{letter-spacing:4px;}
+  .fg select{cursor:auto;}
+}
+
+/* ── SMALL MOBILE ≤480px ── */
+@media(max-width:480px){
+  nav{padding:16px 20px;}
+  .n-logo{font-size:16px;}
+  .h-wrap{padding:90px 20px 64px;}
+  #cap,#proc,#contact{padding-left:20px;padding-right:20px;}
+  .st{padding:24px 16px;}
+  .ci{padding:24px 16px;}
+}
+</style>
+</head>
+<body>
+
+<div id="cur"><div id="cur-ring"><div id="cur-dot"></div></div></div>
+<div id="coords">X:0000.000  Y:0000.000</div>
+<div id="prog"></div>
+
+<nav id="nav">
+  <a class="n-logo" href="#">HP <b>ENGINEERING</b></a>
+  <ul class="n-links">
+    <li><a href="#cap">Capabilities</a></li>
+    <li><a href="#proc">Process</a></li>
+    <li><a href="#mat">Materials</a></li>
+    <li><a href="#contact">Contact</a></li>
+  </ul>
+  <a href="#contact" class="n-btn">Get Quote</a>
+  <button class="n-ham" id="ham" aria-label="Menu"><span></span><span></span><span></span></button>
+</nav>
+<div class="n-mob" id="n-mob">
+  <a href="#cap" class="mob-link">Capabilities</a>
+  <a href="#proc" class="mob-link">Process</a>
+  <a href="#mat" class="mob-link">Materials</a>
+  <a href="#contact" class="mob-link">Contact</a>
+  <a href="#contact" class="n-btn mob-link">Get Quote</a>
+</div>
+
+<section id="hero">
+  <canvas id="cvs"></canvas>
+  <div class="h-wrap">
+    <div class="h-eye"><span>// VMC & CNC PRECISION MANUFACTURING — PUNE, INDIA</span></div>
+    <h1 class="h-title">
+      <span class="ln ln1">HP</span>
+      <span class="ln ln2">Engineering</span>
+    </h1>
+    <div class="h-sub"><span>Machining the impossible. Tolerances to ±0.001mm across aerospace, medical, and defense sectors.</span></div>
+    <div class="h-acts">
+      <a href="#contact" class="n-btn">Request a Quote</a>
+      <a href="#cap" style="font-family:'Share Tech Mono',monospace;font-size:10px;letter-spacing:2px;color:var(--dim);text-decoration:none;">Explore ↓</a>
+    </div>
+  </div>
+  <div class="scr">
+    <div class="scr-track"></div>
+    <div class="scr-lbl">scroll</div>
+  </div>
+</section>
+
+<section id="stats">
+  <div class="st rv"><div class="st-v"><span class="ctr" data-to="25" data-suf="+">0</span></div><div class="st-l">Years of Precision</div></div>
+  <div class="st rv" style="transition-delay:.1s"><div class="st-v">±<span class="ctr" data-to="1" data-dec="3">0</span><span class="st-u">mm</span></div><div class="st-l">Tolerance Achieved</div></div>
+  <div class="st rv" style="transition-delay:.2s"><div class="st-v"><span class="ctr" data-to="98" data-suf=".7">0</span><span class="st-u">%</span></div><div class="st-l">On-Time Delivery</div></div>
+  <div class="st rv" style="transition-delay:.3s"><div class="st-v"><span class="ctr" data-to="3500" data-suf="+">0</span></div><div class="st-l">Parts Per Month</div></div>
+</section>
+
+<section id="cap">
+  <div class="sh rv">
+    <div class="sh-tag">Core Capabilities</div>
+    <h2 class="sh-ttl">What We <i>Machine</i></h2>
+  </div>
+  <div class="cg">
+    <div class="ci rv"><div class="ci-n">01</div><div class="ci-bar"></div><div class="ci-name">VMC Machining</div><p class="ci-desc">Vertical machining centers for complex 3D geometries with through-spindle coolant, probing, and 30-tool ATC.</p><ul class="ci-specs"><li>Travel X-1100 × Y-600 × Z-600mm</li><li>Spindle up to 15,000 RPM</li><li>30+24 tool ATC</li><li>Repeatability ±0.002mm</li></ul><div class="ci-bg">01</div></div>
+    <div class="ci rv" style="transition-delay:.07s"><div class="ci-n">02</div><div class="ci-bar"></div><div class="ci-name">CNC Turning</div><p class="ci-desc">High-speed turning centers with Y-axis live tooling for complete turned-and-milled parts in one setup.</p><ul class="ci-specs"><li>Max diameter Ø500mm</li><li>Max length 2000mm</li><li>Y-axis live tooling</li><li>Surface finish Ra 0.4μm</li></ul><div class="ci-bg">02</div></div>
+    <div class="ci rv" style="transition-delay:.14s"><div class="ci-n">03</div><div class="ci-bar"></div><div class="ci-name">5-Axis Machining</div><p class="ci-desc">Simultaneous 5-axis for impellers, turbine blades and sculptured geometries — one setup, full part.</p><ul class="ci-specs"><li>±120° A-axis / 360° C-axis</li><li>Positional accuracy 0.001°</li><li>Complex undercuts</li><li>Single setup complete parts</li></ul><div class="ci-bg">03</div></div>
+    <div class="ci rv" style="transition-delay:.21s"><div class="ci-n">04</div><div class="ci-bar"></div><div class="ci-name">Wire EDM</div><p class="ci-desc">EDM for ultra-precise profiles through any conductive material, regardless of hardness rating.</p><ul class="ci-specs"><li>Wire diameter 0.1–0.3mm</li><li>Accuracy ±0.003mm</li><li>Max cut height 300mm</li><li>4-axis taper cutting</li></ul><div class="ci-bg">04</div></div>
+    <div class="ci rv" style="transition-delay:.28s"><div class="ci-n">05</div><div class="ci-bar"></div><div class="ci-name">CMM Inspection</div><p class="ci-desc">Zeiss CMM ensuring 100% dimensional compliance with full GD&T, FAI, and PPAP documentation.</p><ul class="ci-specs"><li>Range 700×1000×600mm</li><li>Accuracy 1.2μm</li><li>Full GD&T reporting</li><li>FAIR / PPAP / AS9100</li></ul><div class="ci-bg">05</div></div>
+    <div class="ci rv" style="transition-delay:.35s"><div class="ci-n">06</div><div class="ci-bar"></div><div class="ci-name">Surface Grinding</div><p class="ci-desc">Precision grinding for mirror-finish surfaces and ultra-tight flatness on critical mating components.</p><ul class="ci-specs"><li>Table 600×300mm</li><li>Flatness 0.001mm/300mm</li><li>Surface finish Ra 0.2μm</li><li>CNC-controlled dressing</li></ul><div class="ci-bg">06</div></div>
+  </div>
+</section>
+
+<section id="proc">
+  <div class="sh rv">
+    <div class="sh-tag">How We Work</div>
+    <h2 class="sh-ttl">The <i>Process</i></h2>
+  </div>
+  <div class="proc-row">
+    <div class="proc-anim-line" id="pal"></div>
+    <div class="ps rv"><div class="ps-dot"></div><div class="ps-i">01 / DFM</div><div class="ps-n">Design Review</div><p class="ps-d">CAD analysis, DFM feedback, and feasibility confirmation before quoting.</p></div>
+    <div class="ps rv" style="transition-delay:.1s"><div class="ps-dot"></div><div class="ps-i">02 / CAM</div><div class="ps-n">Programming</div><p class="ps-d">Mastercam toolpaths optimised for efficiency, quality, and tool life.</p></div>
+    <div class="ps rv" style="transition-delay:.2s"><div class="ps-dot"></div><div class="ps-i">03 / SETUP</div><div class="ps-n">Fixturing</div><p class="ps-d">Zero-point clamping for sub-micron repeatability across full production runs.</p></div>
+    <div class="ps rv" style="transition-delay:.3s"><div class="ps-dot"></div><div class="ps-i">04 / MACHINE</div><div class="ps-n">Manufacturing</div><p class="ps-d">Automated VMC/CNC with in-process gauging and SPC monitoring.</p></div>
+    <div class="ps rv" style="transition-delay:.4s"><div class="ps-dot"></div><div class="ps-i">05 / QC</div><div class="ps-n">Inspection</div><p class="ps-d">CMM verification and full material traceability for every batch.</p></div>
+  </div>
+</section>
+
+<section id="mat">
+  <div class="mat-head sh rv">
+    <div class="sh-tag">Material Expertise</div>
+    <h2 class="sh-ttl">We Machine <i>Anything</i></h2>
+  </div>
+  <div class="mq">
+    <div class="mq-inner">
+      <div class="mq-item">Aluminum 6061-T6</div><div class="mq-item">Titanium Ti-6Al-4V</div><div class="mq-item">Inconel 718</div><div class="mq-item">Stainless 316L</div><div class="mq-item">Tool Steel D2</div><div class="mq-item">Brass C360</div><div class="mq-item">PEEK</div><div class="mq-item">Carbon Steel EN8</div>
+      <div class="mq-item">Aluminum 6061-T6</div><div class="mq-item">Titanium Ti-6Al-4V</div><div class="mq-item">Inconel 718</div><div class="mq-item">Stainless 316L</div><div class="mq-item">Tool Steel D2</div><div class="mq-item">Brass C360</div><div class="mq-item">PEEK</div><div class="mq-item">Carbon Steel EN8</div>
+    </div>
+  </div>
+  <div class="mq mq2" style="margin-top:1px;border-top:1px solid var(--border);">
+    <div class="mq-inner rev">
+      <div class="mq-item">Aerospace</div><div class="mq-item">Defense</div><div class="mq-item">Medical</div><div class="mq-item">Automotive</div><div class="mq-item">Semiconductor</div><div class="mq-item">Energy</div><div class="mq-item">Robotics</div><div class="mq-item">Oil & Gas</div>
+      <div class="mq-item">Aerospace</div><div class="mq-item">Defense</div><div class="mq-item">Medical</div><div class="mq-item">Automotive</div><div class="mq-item">Semiconductor</div><div class="mq-item">Energy</div><div class="mq-item">Robotics</div><div class="mq-item">Oil & Gas</div>
+    </div>
+  </div>
+</section>
+
+<section id="contact">
+  <div class="sh rv">
+    <div class="sh-tag">Work With Us</div>
+    <h2 class="sh-ttl">Let's <i>Build</i></h2>
+  </div>
+  <div class="cl">
+    <div class="rv">
+      <div class="c-tagline">Upload your<br><i>CAD file.</i><br>Quote in 4 hrs.</div>
+      <div class="cd"><span class="ck">Location</span><span class="cv">Plot 47, Industrial Area Phase-II<br>Pune, Maharashtra 411018, India</span></div>
+      <div class="cd"><span class="ck">Email</span><span class="cv">quote@hpengineering.in</span></div>
+      <div class="cd"><span class="ck">Phone</span><span class="cv">+91 20 2612 XXXX</span></div>
+      <div class="cd"><span class="ck">Hours</span><span class="cv">Mon – Sat  08:00 – 20:00 IST</span></div>
+      <div class="cd"><span class="ck">Certs</span><span class="cv">ISO 9001:2015 · AS9100D · IATF 16949</span></div>
+    </div>
+    <div class="rv" style="transition-delay:.15s">
+      <div class="cf">
+        <div class="fr"><div class="fg"><input type="text" placeholder="Full Name"></div><div class="fg"><input type="email" placeholder="Email"></div></div>
+        <div class="fg"><input type="text" placeholder="Company"></div>
+        <div class="fg"><select><option value="" disabled selected>Service Required</option><option>VMC Machining</option><option>CNC Turning</option><option>5-Axis Machining</option><option>Wire EDM</option><option>Surface Grinding</option><option>CMM Inspection</option><option>Full Part Supply</option></select></div>
+        <div class="fr"><div class="fg"><input type="number" placeholder="Quantity"></div><div class="fg"><input type="text" placeholder="Material (e.g. Al 6061)"></div></div>
+        <div class="fg"><textarea placeholder="Project details, tolerances, lead time..."></textarea></div>
+        <button class="f-sub">Submit Request →</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="f-logo">HP <b>ENGINEERING</b></div>
+  <div class="f-mono">© 2026 HP Engineering Pvt. Ltd. — All rights reserved</div>
+  <div class="f-mono">ISO 9001:2015 Certified</div>
+</footer>
+
+<script>
+// ── MOBILE DETECT ──────────────────────────────────
+const isMob=()=>window.innerWidth<=768||/Mobi|Android/i.test(navigator.userAgent);
+
+// ── HAMBURGER ──────────────────────────────────────
+const ham=document.getElementById('ham'),nMob=document.getElementById('n-mob');
+ham.addEventListener('click',()=>{
+  ham.classList.toggle('open');
+  nMob.classList.toggle('open');
+});
+document.querySelectorAll('.mob-link').forEach(a=>{
+  a.addEventListener('click',()=>{ham.classList.remove('open');nMob.classList.remove('open');});
+});
+
+// ── CURSOR ─────────────────────────────────────────
+const cur=document.getElementById('cur'),coords=document.getElementById('coords');
+let mx=0,my=0,cx=0,cy=0;
+if(!isMob()){
+document.addEventListener('mousemove',e=>{
+  mx=e.clientX;my=e.clientY;
+  const xv=((e.clientX/innerWidth)*1100).toFixed(3).padStart(7,'0');
+  const yv=((e.clientY/innerHeight)*600).toFixed(3).padStart(7,'0');
+  coords.textContent=`X:${xv}  Y:${yv}`;
+  coords.classList.add('active');
+  clearTimeout(coords._t);
+  coords._t=setTimeout(()=>coords.classList.remove('active'),1200);
+});
+(function ca(){cx+=(mx-cx)*0.12;cy+=(my-cy)*0.12;cur.style.transform=`translate(${cx}px,${cy}px) translate(-50%,-50%)`;requestAnimationFrame(ca);})();
+}
+
+// ── PROGRESS BAR ────────────────────────────────────
+const prog=document.getElementById('prog');
+window.addEventListener('scroll',()=>{
+  const d=document.documentElement;
+  prog.style.width=(d.scrollTop/(d.scrollHeight-d.clientHeight)*100)+'%';
+  document.getElementById('nav').style.background=d.scrollTop>60?'rgba(8,8,8,0.94)':'transparent';
+},{passive:true});
+
+// ── CNC CANVAS ──────────────────────────────────────
+if(!isMob()){
+const canvas=document.getElementById('cvs');
+const ctx=canvas.getContext('2d');
+let W,H,allPts=[],head=0,frac=0,sparks=[];
+const TRAIL=100,SPD=0.85;
+
+function resize(){W=canvas.width=canvas.offsetWidth;H=canvas.height=canvas.offsetHeight;build();}
+window.addEventListener('resize',resize);
+
+function rrPts(ox,oy,w,h,r,spe=24,spa=10){
+  const p=[],x1=ox-w/2,x2=ox+w/2,y1=oy-h/2,y2=oy+h/2;
+  for(let i=0;i<=spe;i++) p.push({x:x1+r+(x2-x1-2*r)*i/spe,y:y1,rap:false});
+  for(let i=0;i<=spa;i++){const a=-Math.PI/2+Math.PI/2*i/spa;p.push({x:x2-r+r*Math.cos(a),y:y1+r+r*Math.sin(a),rap:false});}
+  for(let i=0;i<=spe;i++) p.push({x:x2,y:y1+r+(y2-y1-2*r)*i/spe,rap:false});
+  for(let i=0;i<=spa;i++){const a=0+Math.PI/2*i/spa;p.push({x:x2-r+r*Math.cos(a),y:y2-r+r*Math.sin(a),rap:false});}
+  for(let i=0;i<=spe;i++) p.push({x:x2-r-(x2-x1-2*r)*i/spe,y:y2,rap:false});
+  for(let i=0;i<=spa;i++){const a=Math.PI/2+Math.PI/2*i/spa;p.push({x:x1+r+r*Math.cos(a),y:y2-r+r*Math.sin(a),rap:false});}
+  for(let i=0;i<=spe;i++) p.push({x:x1,y:y2-r-(y2-y1-2*r)*i/spe,rap:false});
+  for(let i=0;i<=spa;i++){const a=Math.PI+Math.PI/2*i/spa;p.push({x:x1+r+r*Math.cos(a),y:y1+r+r*Math.sin(a),rap:false});}
+  return p;
+}
+function circPts(ox,oy,r,n=32){return Array.from({length:n+1},(_,i)=>({x:ox+r*Math.cos(i/n*Math.PI*2),y:oy+r*Math.sin(i/n*Math.PI*2),rap:false}));}
+function rapTo(pts,tx,ty){const last=pts.length?pts[pts.length-1]:{x:tx,y:ty};for(let i=1;i<=5;i++) pts.push({x:last.x+(tx-last.x)*i/5,y:last.y+(ty-last.y)*i/5,rap:true});}
+
+function build(){
+  allPts=[];head=0;frac=0;
+  const pcx=W*0.64,pcy=H*0.50;
+  const pw=Math.min(W*0.33,380),ph=pw*0.64,pr=pw*0.048;
+
+  // Outer contour
+  rapTo(allPts,pcx-pw/2+pr,pcy-ph/2);
+  allPts.push(...rrPts(pcx,pcy,pw,ph,pr));
+
+  // Inner pocket
+  const ppw=pw*0.52,pph=ph*0.5,ppr=pw*0.028;
+  rapTo(allPts,pcx-ppw/2+ppr,pcy-pph/2);
+  allPts.push(...rrPts(pcx,pcy,ppw,pph,ppr,20,8));
+
+  // Pocket floor facing lines
+  const fy1=pcy-pph/2+ph*0.07, fy2=pcy+pph/2-ph*0.07;
+  for(let i=0;i<=4;i++){
+    const fy=fy1+(fy2-fy1)*i/4;
+    const dir=i%2===0?1:-1;
+    rapTo(allPts,dir>0?pcx-ppw/2+ppr:pcx+ppw/2-ppr,fy);
+    allPts.push({x:dir>0?pcx+ppw/2-ppr:pcx-ppw/2+ppr,y:fy,rap:false});
+  }
+
+  // 4 bolt holes
+  const hr=pw*0.04,hx=pw*0.36,hy=ph*0.33;
+  [[pcx-hx,pcy-hy],[pcx+hx,pcy-hy],[pcx+hx,pcy+hy],[pcx-hx,pcy+hy]].forEach(([cx2,cy2])=>{
+    rapTo(allPts,cx2+hr,cy2);
+    allPts.push(...circPts(cx2,cy2,hr,20));
+  });
+
+  // Center slot
+  const sw=pw*0.28,sh=ph*0.12,sr=sh*0.45;
+  rapTo(allPts,pcx-sw/2+sr,pcy-sh/2);
+  allPts.push(...rrPts(pcx,pcy,sw,sh,sr,14,8));
+}
+
+// Faint grid
+function drawGrid(){
+  ctx.save();
+  for(let x=0;x<W;x+=52){ctx.strokeStyle=x%260===0?'rgba(80,110,160,0.05)':'rgba(80,110,160,0.022)';ctx.lineWidth=0.5;ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke();}
+  for(let y=0;y<H;y+=52){ctx.strokeStyle=y%260===0?'rgba(80,110,160,0.05)':'rgba(80,110,160,0.022)';ctx.lineWidth=0.5;ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();}
+  ctx.restore();
+}
+
+// Faint workpiece outline
+function drawOutline(){
+  if(!allPts.length)return;
+  const pcx=W*0.64,pcy=H*0.50,pw=Math.min(W*0.33,380),ph=pw*0.64,pr=pw*0.048;
+  const x1=pcx-pw/2,x2=pcx+pw/2,y1=pcy-ph/2,y2=pcy+ph/2;
+  ctx.save();ctx.strokeStyle='rgba(255,255,255,0.035)';ctx.lineWidth=0.8;ctx.setLineDash([5,7]);
+  ctx.beginPath();ctx.moveTo(x1+pr,y1);ctx.lineTo(x2-pr,y1);ctx.arcTo(x2,y1,x2,y1+pr,pr);ctx.lineTo(x2,y2-pr);ctx.arcTo(x2,y2,x2-pr,y2,pr);ctx.lineTo(x1+pr,y2);ctx.arcTo(x1,y2,x1,y2-pr,pr);ctx.lineTo(x1,y1+pr);ctx.arcTo(x1,y1,x1+pr,y1,pr);ctx.closePath();ctx.stroke();ctx.setLineDash([]);ctx.restore();
+}
+
+function drawTrail(){
+  const s=Math.max(0,head-TRAIL);
+  for(let i=s;i<head-1;i++){
+    const p=allPts[i],q=allPts[i+1];
+    if(p.rap||q.rap)continue;
+    const age=head-1-i,t=age/TRAIL;
+    ctx.save();ctx.strokeStyle=`rgba(220,255,0,${(1-t)*0.9})`;ctx.lineWidth=Math.max(0.3,1.8-t*1.5);ctx.lineCap='round';
+    ctx.beginPath();ctx.moveTo(p.x,p.y);ctx.lineTo(q.x,q.y);ctx.stroke();ctx.restore();
+  }
+}
+
+function drawTool(){
+  if(head>=allPts.length)return;
+  const p=allPts[Math.min(head,allPts.length-1)];
+  if(!p)return;
+  [[22,0.03],[12,0.1],[6,0.28]].forEach(([r,a])=>{const g=ctx.createRadialGradient(p.x,p.y,0,p.x,p.y,r);g.addColorStop(0,`rgba(220,255,0,${a})`);g.addColorStop(1,'rgba(0,0,0,0)');ctx.beginPath();ctx.arc(p.x,p.y,r,0,Math.PI*2);ctx.fillStyle=g;ctx.fill();});
+  ctx.fillStyle='#DCFF00';ctx.beginPath();ctx.arc(p.x,p.y,2.5,0,Math.PI*2);ctx.fill();
+  ctx.save();ctx.strokeStyle='rgba(220,255,0,0.2)';ctx.lineWidth=0.4;
+  ctx.beginPath();ctx.moveTo(p.x-16,p.y);ctx.lineTo(p.x+16,p.y);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(p.x,p.y-16);ctx.lineTo(p.x,p.y+16);ctx.stroke();ctx.restore();
+}
+
+function emitSparks(){
+  if(head>=allPts.length)return;
+  const p=allPts[head];
+  if(p&&!p.rap&&Math.random()<0.2){
+    for(let i=0;i<Math.floor(Math.random()*3)+1;i++){
+      const a=Math.random()*Math.PI*2,spd=Math.random()*1.8+0.4;
+      sparks.push({x:p.x,y:p.y,vx:Math.cos(a)*spd,vy:Math.sin(a)*spd,life:1});
+    }
+  }
+}
+
+function drawSparks(){
+  for(let i=sparks.length-1;i>=0;i--){
+    const s=sparks[i];s.x+=s.vx;s.y+=s.vy;s.vy+=0.05;s.life-=0.04;
+    if(s.life<=0){sparks.splice(i,1);continue;}
+    ctx.fillStyle=`rgba(220,255,0,${s.life*0.8})`;ctx.beginPath();ctx.arc(s.x,s.y,Math.max(0.4,s.life*1.8),0,Math.PI*2);ctx.fill();
+  }
+}
+
+function drawHUD(){
+  if(head>=allPts.length)return;
+  const p=allPts[head];
+  const pcx=W*0.64,pcy=H*0.5,pw=Math.min(W*0.33,380),ph=pw*0.64;
+  const hx=pcx-pw/2-80,hy=pcy-ph/2;
+  ctx.save();ctx.font='9px Share Tech Mono, monospace';ctx.fillStyle='rgba(220,255,0,0.28)';
+  ctx.fillText(`X: ${((p.x-(pcx-pw/2))/pw*1100).toFixed(3).padStart(7,'0')}`,hx,hy+8);
+  ctx.fillText(`Y: ${((p.y-(pcy-ph/2))/ph*600).toFixed(3).padStart(7,'0')}`,hx,hy+20);
+  ctx.fillText('F: 1200 mm/min',hx,hy+32);
+  ctx.fillText('S: 8000 RPM',hx,hy+44);
+  ctx.fillStyle='rgba(255,255,255,0.1)';ctx.fillText('HP VMC-500',hx,hy-8);
+  ctx.restore();
+}
+
+function drawRapidHint(){
+  const s=Math.max(0,head-8);
+  for(let i=s;i<head-1;i++){
+    const p=allPts[i],q=allPts[i+1];
+    if(!p.rap||!q.rap)continue;
+    ctx.save();ctx.strokeStyle='rgba(255,255,255,0.035)';ctx.lineWidth=0.4;ctx.setLineDash([3,6]);
+    ctx.beginPath();ctx.moveTo(p.x,p.y);ctx.lineTo(q.x,q.y);ctx.stroke();ctx.setLineDash([]);ctx.restore();
+  }
+}
+
+function loop(){
+  ctx.clearRect(0,0,W,H);
+  drawGrid();drawOutline();drawRapidHint();drawTrail();emitSparks();drawSparks();drawTool();drawHUD();
+  frac+=SPD;while(frac>=1){frac--;head++;if(head>=allPts.length)head=0;}
+  requestAnimationFrame(loop);
+}
+resize();loop();
+} // end !isMob canvas block
+
+// ── SCROLL REVEAL ────────────────────────────────────
+const obs=new IntersectionObserver(entries=>{
+  entries.forEach(e=>{
+    if(!e.isIntersecting)return;
+    e.target.classList.add('vis');
+    const ctr=e.target.querySelector('.ctr');
+    if(ctr&&!ctr.dataset.done){ctr.dataset.done='1';runCounter(ctr);}
+  });
+},{threshold:0.12});
+document.querySelectorAll('.rv,.st,.ci,.ps').forEach(el=>obs.observe(el));
+
+// Process line
+if(!isMob()){
+  const palObs=new IntersectionObserver(entries=>{entries.forEach(e=>{if(e.isIntersecting)document.getElementById('pal').classList.add('vis');});},{threshold:0.3});
+  if(document.getElementById('proc'))palObs.observe(document.getElementById('proc'));
+}
+
+// On mobile: immediately mark everything visible & run counters
+if(isMob()){
+  document.querySelectorAll('.rv,.st,.ci,.ps').forEach(el=>el.classList.add('vis'));
+  document.querySelectorAll('.ctr').forEach(el=>{if(!el.dataset.done){el.dataset.done='1';runCounter(el);}});
+}
+
+// ── COUNTERS ─────────────────────────────────────────
+function runCounter(el){
+  const to=parseInt(el.dataset.to),suf=el.dataset.suf||'',isDec=el.dataset.dec;
+  const dur=1800,t0=performance.now();
+  function tick(now){
+    const t=Math.min(1,(now-t0)/dur),ease=1-Math.pow(1-t,4),v=Math.round(to*ease);
+    el.textContent=isDec?'0.'+String(v).padStart(parseInt(isDec),'0'):v.toLocaleString();
+    if(t<1)requestAnimationFrame(tick);
+    else el.textContent=isDec?'0.001':to.toLocaleString()+suf;
+  }
+  requestAnimationFrame(tick);
+}
+
+// ── TEXT SCRAMBLE ─────────────────────────────────────
+if(!isMob()){
+const CHARS='ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789·–×';
+function scramble(el){
+  if(el._scr)return;el._scr=true;
+  const orig=el.textContent,plain=el.querySelector('i');
+  let f=0;
+  const iv=setInterval(()=>{
+    el.innerHTML=orig.split('').map((ch,i)=>{
+      if(ch===' ')return ' ';
+      if(orig.indexOf('<i>')!==-1&&i>=orig.indexOf('<i>'))return ch;
+      const done=i<Math.floor(f/2.5)-1;
+      if(done)return ch==='<'||ch==='>'||ch==='/'?ch:ch;
+      return CHARS[Math.floor(Math.random()*CHARS.length)];
+    }).join('');
+    f++;if(f>orig.length*3+10){el.innerHTML=orig;clearInterval(iv);}
+  },36);
+}
+const scObs=new IntersectionObserver(entries=>{
+  entries.forEach(e=>{if(e.isIntersecting){const t=e.target.querySelector('.sh-ttl');if(t)setTimeout(()=>scramble(t),100);}});
+},{threshold:0.25});
+document.querySelectorAll('section').forEach(s=>scObs.observe(s));
+} // end !isMob scramble block
+
+// ── CARD HOVER TILT ────────────────────────────────────
+if(!isMob()){
+document.querySelectorAll('.ci').forEach(c=>{
+  c.addEventListener('mousemove',e=>{
+    const r=c.getBoundingClientRect();
+    c.style.transform=`perspective(900px) rotateX(${-(e.clientY-r.top)/r.height*5+2.5}deg) rotateY(${(e.clientX-r.left)/r.width*5-2.5}deg)`;
+  });
+  c.addEventListener('mouseleave',()=>c.style.transform='');
+});
+}
+</script>
+</body>
+</html>
